@@ -21,40 +21,50 @@ export function LiveFeed() {
     });
   }, []);
 
-  // Manual drag scroll handlers
+  // Mouse drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
     setIsDragging(true);
-    setStartX(e.pageX - (scrollContainerRef.current?.offsetLeft || 0));
-    setScrollLeft(scrollContainerRef.current?.scrollLeft || 0);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+    scrollContainerRef.current.style.cursor = 'grabbing';
   };
 
-  const handleMouseUp = () => setIsDragging(false);
-  const handleMouseLeave = () => setIsDragging(false);
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
+  };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || !scrollContainerRef.current) return;
     e.preventDefault();
-    const x = e.pageX - (scrollContainerRef.current?.offsetLeft || 0);
-    const walk = (x - startX) * 2;
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-    }
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
   // Touch handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (!scrollContainerRef.current) return;
     setIsDragging(true);
-    setStartX(e.touches[0].pageX - (scrollContainerRef.current?.offsetLeft || 0));
-    setScrollLeft(scrollContainerRef.current?.scrollLeft || 0);
+    setStartX(e.touches[0].pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    const x = e.touches[0].pageX - (scrollContainerRef.current?.offsetLeft || 0);
-    const walk = (x - startX) * 2;
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-    }
+    if (!isDragging || !scrollContainerRef.current) return;
+    const x = e.touches[0].pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
   const handleTouchEnd = () => setIsDragging(false);
@@ -62,24 +72,30 @@ export function LiveFeed() {
   if (feedItems.length === 0) return null;
 
   return (
-    <div className="w-full flex justify-center py-4 bg-transparent select-none relative z-40">
-      <div className="relative flex items-center h-12 w-full max-w-[1400px] glass-card overflow-visible">
+    <div className="w-full flex justify-center py-3 px-4 bg-transparent select-none relative z-40">
+      <div className="relative flex items-center h-14 w-full glass-card overflow-hidden rounded-2xl">
         
-        {/* LIVE Badge - Fixed */}
-        <div className="absolute left-0 z-[60] bg-card/90 backdrop-blur-xl px-5 h-full flex items-center border-r border-border rounded-l-2xl">
+        {/* LIVE Badge - Fixed on left */}
+        <div className="shrink-0 bg-card/90 backdrop-blur-xl px-4 h-full flex items-center border-r border-border">
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
             </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] brand-gradient-text">Live</span>
+            <span className="text-[11px] font-black uppercase tracking-wider text-foreground">Live</span>
           </div>
         </div>
 
-        {/* Scrollable Container - Can be dragged left/right */}
+        {/* Scrollable Container - Smooth manual drag */}
         <div 
           ref={scrollContainerRef}
-          className="flex-1 h-full overflow-x-auto no-scrollbar rounded-2xl ml-24 relative z-10 cursor-grab active:cursor-grabbing"
+          className="flex-1 h-full overflow-x-auto overflow-y-hidden scroll-smooth"
+          style={{ 
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none',
+            cursor: 'grab',
+            WebkitOverflowScrolling: 'touch'
+          }}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
@@ -88,68 +104,68 @@ export function LiveFeed() {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="flex whitespace-nowrap items-center h-full animate-scroll group hover:[animation-play-state:paused]">
-            {[...feedItems, ...feedItems].map((item, index) => {
+          <div className="inline-flex items-center h-full gap-0 min-w-max">
+            {feedItems.map((item, index) => {
               const itemId = `${item.id}-${index}`;
               return (
                 <div
                   key={itemId}
-                  className="relative inline-flex items-center gap-3 px-6 border-r border-border last:border-none cursor-pointer group/item h-full"
-                  onMouseEnter={() => setActiveTooltip(itemId)}
+                  className="relative inline-flex items-center gap-3 px-5 border-r border-border/50 h-full hover:bg-secondary/30 transition-colors"
+                  onMouseEnter={() => !isDragging && setActiveTooltip(itemId)}
                   onMouseLeave={() => setActiveTooltip(null)}
-                  onClick={() => setActiveTooltip(activeTooltip === itemId ? null : itemId)}
+                  onClick={(e) => {
+                    if (!isDragging) {
+                      e.stopPropagation();
+                      setActiveTooltip(activeTooltip === itemId ? null : itemId);
+                    }
+                  }}
                 >
-                  <Avatar className="h-7 w-7 border border-border rounded-lg">
+                  <Avatar className="h-8 w-8 border border-border rounded-xl shrink-0">
                     <AvatarImage src={item.photoURL} />
-                    <AvatarFallback className="bg-secondary text-[10px] rounded-lg">{item.username?.[0]}</AvatarFallback>
+                    <AvatarFallback className="bg-secondary text-[10px] rounded-xl font-bold">{item.username?.[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
                   
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-bold text-foreground">{item.username}</span>
-                    <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20">
-                      <Image src="/coin.png" alt="MC" width={14} height={14} className="w-3.5 h-3.5" />
-                      <span className="font-black text-primary">{(item.points || 0).toLocaleString()}</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-bold text-foreground text-sm whitespace-nowrap">{item.username}</span>
+                    <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-xl border border-primary/20">
+                      <Image src="/coin.png" alt="MC" width={14} height={14} className="w-4 h-4" />
+                      <span className="font-black text-primary text-sm">{(item.points || 0).toLocaleString()}</span>
+                      <span className="text-[10px] text-primary/70 font-bold">MC</span>
                     </div>
                   </div>
 
-                  {/* Tooltip - Info popup when clicked/hovered */}
-                  <div className={`
-                    absolute bottom-[120%] left-1/2 -translate-x-1/2 w-56 
-                    glass-card p-4 shadow-2xl
-                    transition-all duration-300 z-[999] pointer-events-none
-                    ${activeTooltip === itemId ? "opacity-100 visible translate-y-0 scale-100" : "opacity-0 invisible translate-y-4 scale-95"}
-                  `}>
-                    <div className="space-y-2 text-left">
-                      <div className="flex flex-col border-b border-border pb-1.5">
-                        <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">User Name:</span>
-                        <span className="text-xs font-black text-foreground">{item.username}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Offer Name:</span>
-                        <span className="text-[10px] font-bold text-primary truncate">{item.offerName || "Task Completed"}</span>
-                      </div>
-                      <div className="flex justify-between items-end pt-1">
-                        <div>
-                          <span className="text-[8px] text-muted-foreground uppercase font-bold block">Offerwall:</span>
-                          <span className="text-[10px] font-bold text-accent">{item.source}</span>
+                  {/* Tooltip popup */}
+                  {activeTooltip === itemId && (
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-60 glass-card p-4 shadow-2xl z-[999] pointer-events-none">
+                      <div className="space-y-2.5 text-left">
+                        <div className="flex flex-col border-b border-border pb-2">
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">User</span>
+                          <span className="text-sm font-black text-foreground">{item.username}</span>
                         </div>
-                        <div className="text-right">
-                          <span className="text-[8px] text-muted-foreground uppercase font-bold block">Reward:</span>
-                          <span className="text-xs font-black text-primary">{item.points} MC</span>
+                        <div className="flex flex-col">
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Offer</span>
+                          <span className="text-xs font-bold text-primary">{item.offerName || "Task Completed"}</span>
+                        </div>
+                        <div className="flex justify-between items-end pt-1">
+                          <div>
+                            <span className="text-[9px] text-muted-foreground uppercase font-bold block">Provider</span>
+                            <span className="text-xs font-bold text-accent">{item.source || "Offery"}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] text-muted-foreground uppercase font-bold block">Reward</span>
+                            <span className="text-sm font-black text-primary">{item.points} MC</span>
+                          </div>
                         </div>
                       </div>
+                      {/* Arrow */}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] w-3 h-3 bg-card border-b border-r border-border rotate-45"></div>
                     </div>
-                    {/* Arrow */}
-                    <div className="absolute top-[98%] left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-b border-r border-border rotate-45"></div>
-                  </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
-
-        {/* Fade effect on right */}
-        <div className="absolute right-0 top-0 bottom-0 w-20 z-20 bg-gradient-to-l from-background to-transparent pointer-events-none rounded-r-2xl" />
       </div>
     </div>
   );

@@ -2,63 +2,38 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, increment } from "firebase/firestore";
+import { useEffect, useState, useRef } from "react";
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, increment, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/auth-context";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { 
   ExternalLink, 
-  Search, 
-  LayoutGrid, 
-  List, 
-  Coins,
-  Filter,
   Loader2,
-  CheckCircle,
-  XCircle,
-  Star,
   ArrowLeft,
   Maximize2,
   X,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Smartphone,
+  Monitor,
+  Apple,
+  CheckCircle2,
+  Star,
+  Users,
+  TrendingUp
 } from "lucide-react";
 import Image from "next/image";
 
 // Convert USD to MC points ($1 = 1000 MC)
 const usdToMC = (usd: number) => Math.round(usd * 1000);
-// Convert MC points to USD
-const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
-type Provider = "all" | "offery" | "adgate" | "cpx" | "lootably";
+type DeviceFilter = "all" | "android" | "ios" | "desktop";
 
-interface Offer {
-  id: string;
-  name: string;
-  description: string;
-  provider: string;
-  mcPoints: number; // Points in MC currency
-  usdValue: number; // Original USD value
-  image?: string;
-  url: string;
-  type?: string;
-  difficulty?: "easy" | "medium" | "hard";
-  isActive: boolean;
-}
-
-interface OfferwallConfig {
+interface Offerwall {
   id: string;
   name: string;
   description: string;
@@ -67,162 +42,215 @@ interface OfferwallConfig {
   likes: number;
   dislikes: number;
   isActive: boolean;
+  avgPoints: number;
+  totalOffers: number;
+  devices: string[]; // ["android", "ios", "desktop"]
+  url: string;
 }
 
-const providerConfig: Record<string, { label: string; color: string; icon: string }> = {
-  all: { label: "All Providers", color: "#3B82F6", icon: "" },
-  offery: { label: "Offery", color: "#ffc107", icon: "https://earng.net/storage/providers/x5v40jKJIoMPSNXMmiyTkK0eWIGXHPXSsAT2QRYb.png" },
-  adgate: { label: "AdGate", color: "#10B981", icon: "https://cdn.adgatemedia.com/images/logo_small.png" },
-  cpx: { label: "CPX Research", color: "#8B5CF6", icon: "https://cpx-research.com/assets/img/cpx-research-logo-full.png" },
-  lootably: { label: "Lootably", color: "#EC4899", icon: "https://www.lootably.com/images/logo.png" },
+const deviceConfig: Record<DeviceFilter, { label: string; icon: any }> = {
+  all: { label: "All Devices", icon: null },
+  android: { label: "Android", icon: Smartphone },
+  ios: { label: "iPhone", icon: Apple },
+  desktop: { label: "Desktop", icon: Monitor },
 };
 
-const difficultyConfig = {
-  easy: { label: "Easy", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
-  medium: { label: "Medium", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
-  hard: { label: "Hard", color: "bg-red-500/10 text-red-500 border-red-500/20" },
-};
+// Default offerwalls data if Firestore is empty
+const defaultOfferwalls: Omit<Offerwall, "id">[] = [
+  {
+    name: "Offery",
+    description: "Complete surveys and offers to earn MC points instantly. High-paying tasks available daily.",
+    logoUrl: "https://earng.net/storage/providers/x5v40jKJIoMPSNXMmiyTkK0eWIGXHPXSsAT2QRYb.png",
+    color: "#ffc107",
+    likes: 245,
+    dislikes: 12,
+    isActive: true,
+    avgPoints: 2500,
+    totalOffers: 150,
+    devices: ["android", "ios", "desktop"],
+    url: "/api/offery"
+  },
+  {
+    name: "AdGate Media",
+    description: "Premium offers and surveys with fast credit. Top rewards for app installations.",
+    logoUrl: "https://cdn.adgatemedia.com/images/logo_small.png",
+    color: "#10B981",
+    likes: 189,
+    dislikes: 8,
+    isActive: true,
+    avgPoints: 1800,
+    totalOffers: 120,
+    devices: ["android", "ios", "desktop"],
+    url: "#"
+  },
+  {
+    name: "CPX Research",
+    description: "Survey-focused offerwall with instant payouts. Multiple daily survey opportunities.",
+    logoUrl: "https://cpx-research.com/assets/img/cpx-research-logo-full.png",
+    color: "#8B5CF6",
+    likes: 156,
+    dislikes: 15,
+    isActive: true,
+    avgPoints: 1200,
+    totalOffers: 80,
+    devices: ["android", "ios", "desktop"],
+    url: "#"
+  },
+  {
+    name: "Lootably",
+    description: "Game offers and app downloads. Best rewards for gaming enthusiasts.",
+    logoUrl: "https://www.lootably.com/images/logo.png",
+    color: "#EC4899",
+    likes: 134,
+    dislikes: 6,
+    isActive: true,
+    avgPoints: 3200,
+    totalOffers: 95,
+    devices: ["android", "ios"],
+    url: "#"
+  },
+  {
+    name: "TimeWall",
+    description: "Time-based rewards for app usage. Earn while using your favorite apps.",
+    logoUrl: "https://www.timewall.io/images/logo.png",
+    color: "#06B6D4",
+    likes: 98,
+    dislikes: 4,
+    isActive: true,
+    avgPoints: 800,
+    totalOffers: 45,
+    devices: ["android", "ios"],
+    url: "#"
+  },
+  {
+    name: "AyeT Studios",
+    description: "Diverse offer types including videos, surveys, and app installs.",
+    logoUrl: "https://www.ayetstudios.com/img/logo.png",
+    color: "#F59E0B",
+    likes: 112,
+    dislikes: 9,
+    isActive: true,
+    avgPoints: 1500,
+    totalOffers: 110,
+    devices: ["android", "ios", "desktop"],
+    url: "#"
+  }
+];
 
 export default function OffersPage() {
-  const { userData } = useAuth();
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [offerwalls, setOfferwalls] = useState<OfferwallConfig[]>([]);
+  const { user, userData } = useAuth();
+  const [offerwalls, setOfferwalls] = useState<Offerwall[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState<Provider>("all");
-  const [sortBy, setSortBy] = useState<string>("points-high");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [displayMode, setDisplayMode] = useState<"mc" | "usd">("mc");
-  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [deviceFilter, setDeviceFilter] = useState<DeviceFilter>("all");
+  const [selectedWall, setSelectedWall] = useState<Offerwall | null>(null);
   const [activeIframe, setActiveIframe] = useState<{url: string, title: string} | null>(null);
+  const [userVotes, setUserVotes] = useState<Record<string, "like" | "dislike">>({});
   
-  // Horizontal scroll for provider filter
+  // Horizontal scroll for device filter
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
     setIsDragging(true);
-    setStartX(e.pageX - (scrollRef.current?.offsetLeft || 0));
-    setScrollLeft(scrollRef.current?.scrollLeft || 0);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
   };
 
   const handleMouseUp = () => setIsDragging(false);
   const handleMouseLeave = () => setIsDragging(false);
   
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || !scrollRef.current) return;
     e.preventDefault();
-    const x = e.pageX - (scrollRef.current?.offsetLeft || 0);
-    const walk = (x - startX) * 2;
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft = scrollLeft - walk;
-    }
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
   };
 
-  // Load offerwalls from Firestore for likes/dislikes
+  // Load offerwalls from Firestore
   useEffect(() => {
     const q = query(collection(db, "offerwalls"), orderBy("avgPoints", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const walls = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            description: data.description,
-            logoUrl: data.logoUrl,
-            color: data.color,
-            likes: data.likes || 0,
-            dislikes: data.dislikes || 0,
-            isActive: data.isActive ?? true,
-          };
-        }) as OfferwallConfig[];
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty) {
+        // Initialize with default data if empty
+        const walls: Offerwall[] = [];
+        for (const wall of defaultOfferwalls) {
+          const docRef = doc(collection(db, "offerwalls"));
+          await setDoc(docRef, wall);
+          walls.push({ id: docRef.id, ...wall });
+        }
+        setOfferwalls(walls);
+      } else {
+        const walls = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Offerwall[];
         setOfferwalls(walls);
       }
+      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // Fetch offers from API
+  // Load user votes
   useEffect(() => {
-    async function fetchAllOffers() {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/offery');
-        const result = await response.json();
-        
-        let fetchedOffers: Offer[] = [];
-
-        if (result && result.status === "success" && result.data) {
-          fetchedOffers = result.data.map((item: any) => {
-            const usdPayout = parseFloat(item.payout?.reward || item.payout || 0);
-            return {
-              id: item.offer?.id || item.id || Math.random().toString(36),
-              name: item.offer?.name || item.name || "Unknown Offer",
-              description: item.offer?.description || item.description || "",
-              provider: "Offery",
-              mcPoints: usdToMC(usdPayout),
-              usdValue: usdPayout,
-              image: item.offer?.image || item.image,
-              difficulty: getDifficulty(usdPayout),
-              type: item.offer?.name?.toLowerCase().includes("survey") ? "survey" : "app",
-              url: item.url || "#",
-              isActive: true
-            };
-          });
-        }
-
-        setOffers(fetchedOffers);
-      } catch (error) {
-        console.error("Error fetching offers:", error);
-      } finally {
-        setLoading(false);
+    if (!user) return;
+    const loadVotes = async () => {
+      const votesDoc = await getDoc(doc(db, "user_votes", user.uid));
+      if (votesDoc.exists()) {
+        setUserVotes(votesDoc.data() as Record<string, "like" | "dislike">);
       }
-    }
+    };
+    loadVotes();
+  }, [user]);
 
-    fetchAllOffers();
-  }, []);
-
-  // Determine difficulty based on USD value
-  function getDifficulty(usd: number): "easy" | "medium" | "hard" {
-    if (usd < 1) return "easy";
-    if (usd < 5) return "medium";
-    return "hard";
-  }
-
-  // Handle like/dislike
-  const handleVote = async (offerwallId: string, type: "like" | "dislike") => {
+  // Handle vote
+  const handleVote = async (wallId: string, type: "like" | "dislike") => {
+    if (!user) return;
+    
+    const currentVote = userVotes[wallId];
+    if (currentVote === type) return; // Already voted this way
+    
     try {
-      const ref = doc(db, "offerwalls", offerwallId);
-      await updateDoc(ref, {
-        [type === "like" ? "likes" : "dislikes"]: increment(1)
-      });
+      const wallRef = doc(db, "offerwalls", wallId);
+      const userVoteRef = doc(db, "user_votes", user.uid);
+      
+      // Update offerwall counts
+      if (currentVote) {
+        // Remove previous vote
+        await updateDoc(wallRef, {
+          [currentVote === "like" ? "likes" : "dislikes"]: increment(-1),
+          [type === "like" ? "likes" : "dislikes"]: increment(1)
+        });
+      } else {
+        // New vote
+        await updateDoc(wallRef, {
+          [type === "like" ? "likes" : "dislikes"]: increment(1)
+        });
+      }
+      
+      // Update user votes
+      await setDoc(userVoteRef, { ...userVotes, [wallId]: type }, { merge: true });
+      setUserVotes(prev => ({ ...prev, [wallId]: type }));
     } catch (error) {
       console.error("Vote error:", error);
     }
   };
 
-  // Filter and sort offers
-  const filteredOffers = offers
-    .filter((offer) => {
-      const matchesSearch =
-        offer.name.toLowerCase().includes(search.toLowerCase()) ||
-        offer.description.toLowerCase().includes(search.toLowerCase());
-      const matchesProvider = selectedProvider === "all" || 
-        offer.provider.toLowerCase() === selectedProvider;
-      return matchesSearch && matchesProvider && offer.isActive;
-    })
-    .sort((a, b) => {
-      if (sortBy === "points-high") return b.mcPoints - a.mcPoints;
-      if (sortBy === "points-low") return a.mcPoints - b.mcPoints;
-      return a.name.localeCompare(b.name);
-    });
+  // Filter offerwalls by device
+  const filteredWalls = offerwalls.filter((wall) => {
+    if (deviceFilter === "all") return wall.isActive;
+    return wall.isActive && wall.devices?.includes(deviceFilter);
+  });
 
-  // Get offerwall config for an offer
-  const getOfferwallConfig = (providerName: string): OfferwallConfig | undefined => {
-    return offerwalls.find(w => w.name.toLowerCase() === providerName.toLowerCase());
+  // Calculate approval rate
+  const getApprovalRate = (likes: number, dislikes: number) => {
+    const total = likes + dislikes;
+    if (total === 0) return 100;
+    return Math.round((likes / total) * 100);
   };
 
   // If iframe is active, show fullscreen offerwall
@@ -273,38 +301,9 @@ export default function OffersPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6 bg-transparent min-h-screen pb-24">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">Earn MC</h1>
-          <p className="text-muted-foreground text-sm font-medium">Complete offers and earn MC points instantly</p>
-        </div>
-        
-        {/* Currency Toggle */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Display:</span>
-          <div className="flex rounded-xl border border-border overflow-hidden">
-            <button
-              onClick={() => setDisplayMode("mc")}
-              className={`px-4 py-2 text-xs font-bold transition-all ${
-                displayMode === "mc" 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              MC
-            </button>
-            <button
-              onClick={() => setDisplayMode("usd")}
-              className={`px-4 py-2 text-xs font-bold transition-all ${
-                displayMode === "usd" 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              USD
-            </button>
-          </div>
-        </div>
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-black text-foreground tracking-tight">Offerwalls</h1>
+        <p className="text-muted-foreground text-sm font-medium">Choose an offerwall to start earning MC points</p>
       </div>
 
       {/* Exchange Rate Info */}
@@ -319,179 +318,190 @@ export default function OffersPage() {
         </CardContent>
       </Card>
 
-      {/* Provider Filter - Horizontal Scrollable */}
+      {/* Device Filter - Horizontal Scrollable */}
       <div 
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing py-2"
+        className="flex gap-3 overflow-x-auto py-2"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', cursor: 'grab' }}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
       >
-        {Object.entries(providerConfig).map(([key, config]) => (
-          <button
-            key={key}
-            onClick={() => setSelectedProvider(key as Provider)}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl border transition-all whitespace-nowrap shrink-0 ${
-              selectedProvider === key
-                ? "border-primary bg-primary/10 text-foreground"
-                : "border-border bg-secondary/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
-            }`}
-          >
-            {config.icon && (
-              <img src={config.icon} alt="" className="w-5 h-5 object-contain rounded" />
-            )}
-            <span className="font-bold text-sm">{config.label}</span>
-            {key !== "all" && (
+        {(Object.entries(deviceConfig) as [DeviceFilter, { label: string; icon: any }][]).map(([key, config]) => {
+          const Icon = config.icon;
+          const count = key === "all" 
+            ? offerwalls.filter(w => w.isActive).length
+            : offerwalls.filter(w => w.isActive && w.devices?.includes(key)).length;
+          
+          return (
+            <button
+              key={key}
+              onClick={() => setDeviceFilter(key)}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl border transition-all whitespace-nowrap shrink-0 ${
+                deviceFilter === key
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-secondary/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+              }`}
+            >
+              {Icon && <Icon className="w-5 h-5" />}
+              <span className="font-bold text-sm">{config.label}</span>
               <Badge className="bg-secondary text-muted-foreground border-border text-[10px] px-2">
-                {offers.filter(o => o.provider.toLowerCase() === key).length}
+                {count}
               </Badge>
-            )}
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
-
-      {/* Search and Filters */}
-      <Card className="glass-card">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search offers..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-12 h-12 rounded-xl bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full lg:w-48 h-12 rounded-xl bg-secondary/50 border-border text-foreground">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border text-foreground">
-                <SelectItem value="points-high">Highest Reward</SelectItem>
-                <SelectItem value="points-low">Lowest Reward</SelectItem>
-                <SelectItem value="name">Name A-Z</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex rounded-xl border border-border overflow-hidden">
-              <Button
-                variant="ghost"
-                onClick={() => setViewMode("grid")}
-                className={`px-4 h-12 rounded-none ${viewMode === "grid" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setViewMode("list")}
-                className={`px-4 h-12 rounded-none ${viewMode === "list" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Stats Bar */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground font-medium">
-          {filteredOffers.length} offers available
+          {filteredWalls.length} offerwalls available
         </span>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Filter className="h-4 w-4" />
-          <span className="font-medium">
-            {selectedProvider === "all" ? "All Providers" : providerConfig[selectedProvider]?.label}
-          </span>
-        </div>
       </div>
 
-      {/* Offers Grid */}
+      {/* Offerwalls Grid */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="h-8 w-8 text-primary animate-spin" />
-          <span className="text-muted-foreground font-medium">Loading offers...</span>
+          <span className="text-muted-foreground font-medium">Loading offerwalls...</span>
         </div>
-      ) : filteredOffers.length === 0 ? (
+      ) : filteredWalls.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4 glass-card rounded-2xl">
           <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center">
-            <Search className="h-8 w-8 text-muted-foreground" />
+            <Monitor className="h-8 w-8 text-muted-foreground" />
           </div>
-          <p className="text-muted-foreground font-medium">No offers found</p>
-          <p className="text-sm text-muted-foreground">Try adjusting your filters or search</p>
+          <p className="text-muted-foreground font-medium">No offerwalls available for this device</p>
         </div>
       ) : (
-        <div className={viewMode === "grid" 
-          ? "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
-          : "space-y-3"
-        }>
-          {filteredOffers.map((offer) => {
-            const wallConfig = getOfferwallConfig(offer.provider);
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredWalls.map((wall) => {
+            const approvalRate = getApprovalRate(wall.likes, wall.dislikes);
+            const userVote = userVotes[wall.id];
             
             return (
               <Card 
-                key={offer.id} 
+                key={wall.id} 
                 className="glass-card hover:border-primary/30 transition-all group cursor-pointer hover-lift overflow-hidden"
-                onClick={() => setSelectedOffer(offer)}
+                onClick={() => setSelectedWall(wall)}
               >
                 <CardContent className="p-0">
-                  {/* Offer Image */}
-                  <div className="relative h-32 bg-secondary/50 overflow-hidden">
-                    {offer.image ? (
-                      <img 
-                        src={offer.image} 
-                        alt={offer.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Coins className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                    )}
+                  {/* Header with logo */}
+                  <div 
+                    className="relative h-24 flex items-center justify-center"
+                    style={{ backgroundColor: `${wall.color}15` }}
+                  >
+                    <img 
+                      src={wall.logoUrl} 
+                      alt={wall.name}
+                      className="h-12 object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/coin.png";
+                      }}
+                    />
                     
-                    {/* Difficulty Badge */}
-                    {offer.difficulty && (
-                      <Badge className={`absolute top-3 right-3 rounded-lg text-[10px] font-bold ${difficultyConfig[offer.difficulty].color}`}>
-                        {difficultyConfig[offer.difficulty].label}
-                      </Badge>
-                    )}
-                    
-                    {/* Provider Badge */}
-                    <Badge className="absolute top-3 left-3 rounded-lg bg-card/80 backdrop-blur-sm text-foreground border-0 text-[10px] font-bold">
-                      {offer.provider}
+                    {/* Approval Badge */}
+                    <Badge 
+                      className={`absolute top-3 right-3 rounded-xl text-[10px] font-bold ${
+                        approvalRate >= 80 
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
+                          : approvalRate >= 60
+                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20"
+                      }`}
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      {approvalRate}%
                     </Badge>
+
+                    {/* Device badges */}
+                    <div className="absolute bottom-3 left-3 flex gap-1">
+                      {wall.devices?.includes("android") && (
+                        <Badge className="bg-card/80 text-foreground border-0 text-[9px] px-1.5 py-0.5 rounded-lg">
+                          <Smartphone className="w-3 h-3" />
+                        </Badge>
+                      )}
+                      {wall.devices?.includes("ios") && (
+                        <Badge className="bg-card/80 text-foreground border-0 text-[9px] px-1.5 py-0.5 rounded-lg">
+                          <Apple className="w-3 h-3" />
+                        </Badge>
+                      )}
+                      {wall.devices?.includes("desktop") && (
+                        <Badge className="bg-card/80 text-foreground border-0 text-[9px] px-1.5 py-0.5 rounded-lg">
+                          <Monitor className="w-3 h-3" />
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   
-                  {/* Offer Details */}
+                  {/* Details */}
                   <div className="p-4 space-y-3">
                     <div>
-                      <CardTitle className="text-foreground text-sm font-bold line-clamp-1 group-hover:text-primary transition-colors">
-                        {offer.name}
-                      </CardTitle>
-                      <CardDescription className="text-muted-foreground text-xs line-clamp-2 mt-1">
-                        {offer.description}
-                      </CardDescription>
+                      <h3 className="text-foreground text-lg font-bold group-hover:text-primary transition-colors">
+                        {wall.name}
+                      </h3>
+                      <p className="text-muted-foreground text-xs line-clamp-2 mt-1">
+                        {wall.description}
+                      </p>
                     </div>
                     
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-2 py-2 border-t border-border">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <TrendingUp className="w-3 h-3 text-primary" />
+                          <span className="text-foreground font-black text-sm">{wall.avgPoints.toLocaleString()}</span>
+                        </div>
+                        <span className="text-[9px] text-muted-foreground">Avg MC</span>
+                      </div>
+                      <div className="text-center border-x border-border">
+                        <div className="flex items-center justify-center gap-1">
+                          <Star className="w-3 h-3 text-amber-500" />
+                          <span className="text-foreground font-black text-sm">{wall.totalOffers}</span>
+                        </div>
+                        <span className="text-[9px] text-muted-foreground">Offers</span>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Users className="w-3 h-3 text-emerald-500" />
+                          <span className="text-foreground font-black text-sm">{wall.likes + wall.dislikes}</span>
+                        </div>
+                        <span className="text-[9px] text-muted-foreground">Votes</span>
+                      </div>
+                    </div>
+
+                    {/* Vote buttons */}
                     <div className="flex items-center justify-between pt-2 border-t border-border">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Image src="/coin.png" alt="MC" width={16} height={16} className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <span className="text-foreground font-black text-lg">
-                            {displayMode === "mc" 
-                              ? offer.mcPoints.toLocaleString()
-                              : `$${offer.usdValue.toFixed(2)}`
-                            }
-                          </span>
-                          <span className="text-[10px] text-muted-foreground ml-1">
-                            {displayMode === "mc" ? "MC" : "USD"}
-                          </span>
-                        </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleVote(wall.id, "like");
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
+                            userVote === "like"
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+                              : "bg-secondary/50 border-border text-muted-foreground hover:border-emerald-500/30 hover:text-emerald-500"
+                          }`}
+                        >
+                          <ThumbsUp className="w-4 h-4" />
+                          <span className="text-xs font-bold">{wall.likes}</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleVote(wall.id, "dislike");
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
+                            userVote === "dislike"
+                              ? "bg-red-500/10 border-red-500/30 text-red-500"
+                              : "bg-secondary/50 border-border text-muted-foreground hover:border-red-500/30 hover:text-red-500"
+                          }`}
+                        >
+                          <ThumbsDown className="w-4 h-4" />
+                          <span className="text-xs font-bold">{wall.dislikes}</span>
+                        </button>
                       </div>
                       
                       <Button 
@@ -499,10 +509,11 @@ export default function OffersPage() {
                         className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs px-4"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveIframe({ url: offer.url, title: offer.name });
+                          setSelectedWall(wall);
                         }}
                       >
-                        Start
+                        Open
+                        <ExternalLink className="w-3 h-3 ml-1.5" />
                       </Button>
                     </div>
                   </div>
@@ -513,132 +524,131 @@ export default function OffersPage() {
         </div>
       )}
 
-      {/* Offer Detail Modal */}
-      <Dialog open={!!selectedOffer} onOpenChange={() => setSelectedOffer(null)}>
-        <DialogContent className="bg-card border border-border text-foreground rounded-2xl sm:max-w-[500px] p-0 overflow-hidden shadow-2xl">
-          <DialogTitle className="sr-only">{selectedOffer?.name}</DialogTitle>
-          
-          {selectedOffer && (
+      {/* Offerwall Detail Modal */}
+      <Dialog open={!!selectedWall} onOpenChange={() => setSelectedWall(null)}>
+        <DialogContent className="glass-card border-border max-w-md p-0 overflow-hidden">
+          {selectedWall && (
             <>
-              {/* Modal Header Image */}
-              <div className="relative h-48 bg-secondary/50 overflow-hidden">
-                {selectedOffer.image ? (
-                  <img 
-                    src={selectedOffer.image} 
-                    alt={selectedOffer.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Coins className="h-16 w-16 text-muted-foreground" />
-                  </div>
-                )}
-                
-                <button 
-                  onClick={() => setSelectedOffer(null)}
-                  className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-card/80 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors"
+              {/* Header */}
+              <div 
+                className="relative h-32 flex items-center justify-center"
+                style={{ backgroundColor: `${selectedWall.color}15` }}
+              >
+                <img 
+                  src={selectedWall.logoUrl} 
+                  alt={selectedWall.name}
+                  className="h-16 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/coin.png";
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-3 right-3 rounded-xl bg-card/80 hover:bg-card"
+                  onClick={() => setSelectedWall(null)}
                 >
-                  <X className="h-5 w-5 text-foreground" />
-                </button>
-                
-                {/* Provider Badge */}
-                <Badge className="absolute bottom-4 left-4 rounded-lg bg-card/80 backdrop-blur-sm text-foreground border-0 font-bold">
-                  {selectedOffer.provider}
-                </Badge>
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
               
-              {/* Modal Content */}
-              <div className="p-6 space-y-6">
-                <div>
-                  <h3 className="text-xl font-black text-foreground">{selectedOffer.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-2">{selectedOffer.description}</p>
-                </div>
+              <div className="p-6 space-y-4">
+                <DialogTitle className="text-xl font-black text-foreground">
+                  {selectedWall.name}
+                </DialogTitle>
                 
-                {/* Reward Display */}
-                <div className="glass-card p-4 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground font-medium">Reward</span>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Image src="/coin.png" alt="MC" width={24} height={24} className="w-6 h-6" />
-                        <span className="text-2xl font-black text-foreground">
-                          {selectedOffer.mcPoints.toLocaleString()}
-                        </span>
-                        <span className="text-sm text-muted-foreground">MC</span>
-                      </div>
-                      <span className="text-muted-foreground">|</span>
-                      <span className="text-lg font-bold text-primary">
-                        ${selectedOffer.usdValue.toFixed(2)}
-                      </span>
+                <p className="text-muted-foreground text-sm">
+                  {selectedWall.description}
+                </p>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="glass-card p-3 rounded-xl text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <Image src="/coin.png" alt="MC" width={16} height={16} />
+                      <span className="text-foreground font-black">{selectedWall.avgPoints.toLocaleString()}</span>
                     </div>
+                    <span className="text-[10px] text-muted-foreground">Avg Reward</span>
+                  </div>
+                  <div className="glass-card p-3 rounded-xl text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <Star className="w-4 h-4 text-amber-500" />
+                      <span className="text-foreground font-black">{selectedWall.totalOffers}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">Offers</span>
+                  </div>
+                  <div className="glass-card p-3 rounded-xl text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span className="text-foreground font-black">{getApprovalRate(selectedWall.likes, selectedWall.dislikes)}%</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">Approval</span>
                   </div>
                 </div>
-                
-                {/* Difficulty */}
-                {selectedOffer.difficulty && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground font-medium">Difficulty</span>
-                    <Badge className={`rounded-lg text-xs font-bold ${difficultyConfig[selectedOffer.difficulty].color}`}>
-                      {difficultyConfig[selectedOffer.difficulty].label}
-                    </Badge>
+
+                {/* Supported Devices */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Supported Devices</span>
+                  <div className="flex gap-2">
+                    {selectedWall.devices?.includes("android") && (
+                      <Badge className="bg-secondary text-foreground border-border rounded-xl px-3 py-1.5">
+                        <Smartphone className="w-4 h-4 mr-1.5" />
+                        Android
+                      </Badge>
+                    )}
+                    {selectedWall.devices?.includes("ios") && (
+                      <Badge className="bg-secondary text-foreground border-border rounded-xl px-3 py-1.5">
+                        <Apple className="w-4 h-4 mr-1.5" />
+                        iPhone
+                      </Badge>
+                    )}
+                    {selectedWall.devices?.includes("desktop") && (
+                      <Badge className="bg-secondary text-foreground border-border rounded-xl px-3 py-1.5">
+                        <Monitor className="w-4 h-4 mr-1.5" />
+                        Desktop
+                      </Badge>
+                    )}
                   </div>
-                )}
-                
-                {/* Vote Section - Connected to Database */}
-                {(() => {
-                  const wallConfig = getOfferwallConfig(selectedOffer.provider);
-                  if (!wallConfig) return null;
-                  
-                  const totalVotes = wallConfig.likes + wallConfig.dislikes;
-                  const likePercent = totalVotes > 0 ? (wallConfig.likes / totalVotes) * 100 : 50;
-                  
-                  return (
-                    <div className="space-y-3">
-                      <span className="text-sm text-muted-foreground font-medium">User Rating</span>
-                      
-                      {/* Progress Bar */}
-                      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden flex border border-border">
-                        <div 
-                          className="h-full bg-emerald-500 transition-all duration-500" 
-                          style={{ width: `${likePercent}%` }}
-                        />
-                        <div 
-                          className="h-full bg-red-500" 
-                          style={{ width: `${100 - likePercent}%` }}
-                        />
-                      </div>
-                      
-                      {/* Vote Buttons */}
-                      <div className="flex items-center justify-between">
-                        <button 
-                          onClick={() => handleVote(wallConfig.id, "like")}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
-                        >
-                          <ThumbsUp className="h-4 w-4" />
-                          <span className="font-bold text-sm">{wallConfig.likes}</span>
-                        </button>
-                        <button 
-                          onClick={() => handleVote(wallConfig.id, "dislike")}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-colors"
-                        >
-                          <ThumbsDown className="h-4 w-4" />
-                          <span className="font-bold text-sm">{wallConfig.dislikes}</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
-                
-                {/* Complete Offer Button */}
+                </div>
+
+                {/* Vote buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => handleVote(selectedWall.id, "like")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                      userVotes[selectedWall.id] === "like"
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+                        : "bg-secondary/50 border-border text-muted-foreground hover:border-emerald-500/30 hover:text-emerald-500"
+                    }`}
+                  >
+                    <ThumbsUp className="w-5 h-5" />
+                    <span className="font-bold">{selectedWall.likes}</span>
+                  </button>
+                  <button
+                    onClick={() => handleVote(selectedWall.id, "dislike")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                      userVotes[selectedWall.id] === "dislike"
+                        ? "bg-red-500/10 border-red-500/30 text-red-500"
+                        : "bg-secondary/50 border-border text-muted-foreground hover:border-red-500/30 hover:text-red-500"
+                    }`}
+                  >
+                    <ThumbsDown className="w-5 h-5" />
+                    <span className="font-bold">{selectedWall.dislikes}</span>
+                  </button>
+                </div>
+
+                {/* Start button */}
                 <Button 
-                  className="w-full h-14 brand-gradient hover:opacity-90 text-white font-bold rounded-xl transition-all text-sm shadow-lg glow-primary"
+                  className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base"
                   onClick={() => {
-                    setSelectedOffer(null);
-                    setActiveIframe({ url: selectedOffer.url, title: selectedOffer.name });
+                    if (selectedWall.url && selectedWall.url !== "#") {
+                      setActiveIframe({ url: selectedWall.url, title: selectedWall.name });
+                    }
+                    setSelectedWall(null);
                   }}
                 >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Complete Offer
+                  Start Earning
+                  <ExternalLink className="w-5 h-5 ml-2" />
                 </Button>
               </div>
             </>

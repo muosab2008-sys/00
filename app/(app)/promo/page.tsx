@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { Ticket, Gift, Loader2, CheckCircle, XCircle } from "lucide-react";
 import Image from "next/image";
 
-// Points to USD conversion
-const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
+// MC to USD conversion (1000 MC = $1)
+const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
 export default function PromoPage() {
   const { userData } = useAuth();
@@ -101,7 +101,7 @@ export default function PromoPage() {
       });
 
       const rewardText = promoData.pointsReward 
-        ? `${promoData.pointsReward.toLocaleString()} points ($${pointsToUSD(promoData.pointsReward)})`
+        ? `${promoData.pointsReward.toLocaleString()} MC ($${mcToUSD(promoData.pointsReward)})`
         : "Bonus";
 
       toast.success(`Code redeemed! You received ${rewardText}`);
@@ -123,7 +123,7 @@ export default function PromoPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Promo Codes</h1>
         <p className="text-muted-foreground">
-          Enter promo codes to receive bonus points!
+          Enter promo codes to receive bonus MC!
         </p>
       </div>
 
@@ -131,7 +131,7 @@ export default function PromoPage() {
       <Card className="glass-card">
         <CardContent className="flex items-center gap-4 p-5">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary border border-border">
-            <Image src="/coin.png" alt="Points" width={32} height={32} className="w-8 h-8 object-contain" />
+            <Image src="/coin.png" alt="MC" width={32} height={32} className="w-8 h-8 object-contain" />
           </div>
           <div className="flex-1">
             <p className="text-sm text-muted-foreground">Current Balance</p>
@@ -139,9 +139,9 @@ export default function PromoPage() {
               <p className="text-3xl font-black text-foreground">
                 {(userData?.points || 0).toLocaleString()}
               </p>
-              <span className="text-sm text-muted-foreground">PTS</span>
+              <span className="text-sm text-muted-foreground">MC</span>
             </div>
-            <p className="text-xs text-primary">= ${pointsToUSD(userData?.points || 0)} USD</p>
+            <p className="text-xs text-primary">= ${mcToUSD(userData?.points || 0)} USD</p>
           </div>
         </CardContent>
       </Card>
