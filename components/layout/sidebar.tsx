@@ -32,8 +32,8 @@ interface SidebarProps {
   isCollapsed?: boolean;
 }
 
-// Points to USD conversion
-const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
+// MC to USD conversion (1000 MC = $1)
+const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
 const navItems = [
   { href: "/", label: "Earn", icon: Coins },
@@ -102,8 +102,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
                 className="w-8 h-8 object-contain"
               />
               <div>
-                <p className="font-bold text-foreground">{(userData.points || 0).toLocaleString()} PTS</p>
-                <p className="text-xs text-muted-foreground">= ${pointsToUSD(userData.points || 0)}</p>
+                <p className="font-bold text-foreground">{(userData.points || 0).toLocaleString()} MC</p>
+                <p className="text-xs text-muted-foreground">= ${mcToUSD(userData.points || 0)}</p>
               </div>
             </div>
           </div>
@@ -197,7 +197,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
                 />
               </div>
               <div className="text-[10px] text-center text-muted-foreground uppercase tracking-wider">
-                {pointsInCurrentLevel.toLocaleString()} / {pointsPerLevel.toLocaleString()} XP
+                {pointsInCurrentLevel.toLocaleString()} / {pointsPerLevel.toLocaleString()} MC
               </div>
             </div>
           ) : (

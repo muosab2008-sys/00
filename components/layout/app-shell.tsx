@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, memo } from "react";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 import { BottomNav } from "./bottom-nav";
+import { LiveFeed } from "@/components/live-feed";
 
 interface AppShellProps {
   children: ReactNode;
 }
+
+// Memoize LiveFeed to prevent unnecessary re-renders
+const MemoizedLiveFeed = memo(LiveFeed);
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,6 +40,9 @@ export function AppShell({ children }: AppShellProps) {
         {/* Main content - transparent background */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-20 lg:pb-0 bg-transparent">
           <div className="w-full h-full">
+            {/* Live Feed - Shows on all pages */}
+            <MemoizedLiveFeed />
+            
             <div className="w-full h-full p-0">
               {children}
             </div>

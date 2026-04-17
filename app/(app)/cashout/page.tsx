@@ -17,8 +17,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, CheckCircle, Clock, History, Info, X, Wallet, ArrowRightLeft } from "lucide-react";
 import Image from "next/image";
 
-// Points to USD conversion (1000 points = $1)
-const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
+// MC to USD conversion (1000 MC = $1)
+const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
 const CASHOUT_CATEGORIES = [
   {
@@ -195,13 +195,13 @@ export default function CashoutPage() {
               <span className="text-4xl font-black block">
                 {displayMode === "points" 
                   ? userPoints.toLocaleString()
-                  : `$${pointsToUSD(userPoints)}`
+                  : `$${mcToUSD(userPoints)}`
                 }
               </span>
               <span className="text-xs text-muted-foreground">
                 {displayMode === "points" 
-                  ? `= $${pointsToUSD(userPoints)} USD`
-                  : `= ${userPoints.toLocaleString()} PTS`
+                  ? `= $${mcToUSD(userPoints)} USD`
+                  : `= ${userPoints.toLocaleString()} MC`
                 }
               </span>
             </div>
@@ -212,8 +212,8 @@ export default function CashoutPage() {
       {/* Conversion Info */}
       <Card className="glass-card p-4 flex items-center justify-center gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <Image src="/coin.png" alt="Points" width={20} height={20} className="w-5 h-5" />
-          <span className="font-bold text-foreground">1000 PTS</span>
+          <Image src="/coin.png" alt="MC" width={20} height={20} className="w-5 h-5" />
+          <span className="font-bold text-foreground">1000 MC</span>
         </div>
         <span className="text-muted-foreground">=</span>
         <span className="font-bold text-primary">$1.00 USD</span>
@@ -237,7 +237,7 @@ export default function CashoutPage() {
                   <img src={method.icon} alt={method.name} className="h-10 w-10 object-contain group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors text-center">{method.name}</span>
-                <span className="text-[9px] text-primary font-bold">Min: {method.minPoints.toLocaleString()} PTS</span>
+                <span className="text-[9px] text-primary font-bold">Min: {method.minPoints.toLocaleString()} MC</span>
               </Card>
             ))}
           </div>
@@ -271,7 +271,7 @@ export default function CashoutPage() {
                     </div>
                     <div className="text-right">
                       <div className="font-black text-foreground text-sm">
-                        {(w.pointsDeducted || 0).toLocaleString()} PTS
+                        {(w.pointsDeducted || 0).toLocaleString()} MC
                       </div>
                       <div className="text-xs text-muted-foreground">
                         ${(w.amountUSD ?? 0).toFixed(2)}
@@ -301,7 +301,7 @@ export default function CashoutPage() {
               </div>
               <div>
                 <h3 className="font-bold text-base">{selectedMethod?.name}</h3>
-                <p className="text-[10px] text-muted-foreground font-medium">Min: {(selectedMethod?.minPoints || 0).toLocaleString()} PTS</p>
+                <p className="text-[10px] text-muted-foreground font-medium">Min: {(selectedMethod?.minPoints || 0).toLocaleString()} MC</p>
               </div>
             </div>
             <button onClick={() => setIsModalOpen(false)} className="bg-secondary p-2 rounded-xl hover:bg-secondary/80 transition-colors">
@@ -331,7 +331,7 @@ export default function CashoutPage() {
                     }`}
                   >
                     <span className="font-black text-xl">{amt.points.toLocaleString()}</span>
-                    <span className="text-[9px] font-medium text-muted-foreground">PTS = ${amt.usd}</span>
+                    <span className="text-[9px] font-medium text-muted-foreground">MC = ${amt.usd}</span>
                   </button>
                 ))}
               </div>
@@ -353,7 +353,7 @@ export default function CashoutPage() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">You will receive</span>
               <div className="text-right">
                 <div className="text-3xl font-black text-primary">${selectedAmount ? selectedAmount.usd.toFixed(2) : '0.00'}</div>
-                <div className="text-xs text-muted-foreground">{selectedAmount ? selectedAmount.points.toLocaleString() : 0} PTS</div>
+                <div className="text-xs text-muted-foreground">{selectedAmount ? selectedAmount.points.toLocaleString() : 0} MC</div>
               </div>
             </div>
           </div>

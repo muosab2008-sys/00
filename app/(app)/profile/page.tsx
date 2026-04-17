@@ -25,8 +25,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-// Points to USD conversion
-const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
+// MC to USD conversion (1000 MC = $1)
+const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
 export default function ProfilePage() {
   const { userData, updateUserProfile, updateUserEmail, updateUserPassword, updateUserAvatar, logout } = useAuth();
@@ -192,7 +192,7 @@ export default function ProfilePage() {
               <p className="text-2xl font-black text-foreground">
                 {(userData?.points || 0).toLocaleString()}
               </p>
-              <p className="text-xs text-primary">= ${pointsToUSD(userData?.points || 0)}</p>
+              <p className="text-xs text-primary">= ${mcToUSD(userData?.points || 0)}</p>
             </div>
           </CardContent>
         </Card>
@@ -221,7 +221,7 @@ export default function ProfilePage() {
               <p className="text-2xl font-black text-primary">
                 {(userData?.totalEarned || 0).toLocaleString()}
               </p>
-              <p className="text-xs text-muted-foreground">= ${pointsToUSD(userData?.totalEarned || 0)}</p>
+              <p className="text-xs text-muted-foreground">= ${mcToUSD(userData?.totalEarned || 0)}</p>
             </div>
           </CardContent>
         </Card>
@@ -250,7 +250,7 @@ export default function ProfilePage() {
               <span className="font-bold text-foreground">Level {userData?.level || 1} Progress</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {pointsInCurrentLevel.toLocaleString()} / {pointsNeededForLevel.toLocaleString()} PTS
+              {pointsInCurrentLevel.toLocaleString()} / {pointsNeededForLevel.toLocaleString()} MC
             </span>
           </div>
           <div className="h-3 w-full bg-secondary rounded-xl overflow-hidden border border-border">

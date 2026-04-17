@@ -70,9 +70,12 @@ export function BottomNav() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
+                {/* Rectangular icon container */}
                 <div className={cn(
-                  "p-2 rounded-xl transition-all duration-200",
-                  isActive && "bg-primary/10"
+                  "p-2 rounded-xl transition-all duration-200 border",
+                  isActive 
+                    ? "bg-primary/10 border-primary/20" 
+                    : "border-transparent hover:bg-secondary"
                 )}>
                   <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
                 </div>

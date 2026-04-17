@@ -15,8 +15,8 @@ import { Trophy, Gift, Star, Lock, Check, Loader2, ShieldCheck, Globe, Send } fr
 import Link from "next/link";
 import Image from "next/image";
 
-// Points to USD conversion
-const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
+// MC to USD conversion (1000 MC = $1)
+const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
 const levels = Array.from({ length: 20 }, (_, i) => ({
   level: i + 1,
@@ -169,9 +169,9 @@ export default function LevelsPage() {
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Total Earned</p>
                 <p className="text-xl font-black text-primary">
-                  {totalEarned.toLocaleString()} PTS
+                  {totalEarned.toLocaleString()} MC
                 </p>
-                <p className="text-xs text-muted-foreground">= ${pointsToUSD(totalEarned)}</p>
+                <p className="text-xs text-muted-foreground">= ${mcToUSD(totalEarned)}</p>
               </div>
             </div>
           </CardHeader>
@@ -180,7 +180,7 @@ export default function LevelsPage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Progress to Level {currentLevel + 1}</span>
                 <span className="font-medium text-foreground">
-                  {pointsInCurrentLevel.toLocaleString()} / {pointsNeededForLevel.toLocaleString()} PTS
+                  {pointsInCurrentLevel.toLocaleString()} / {pointsNeededForLevel.toLocaleString()} MC
                 </span>
               </div>
               <div className="h-3 w-full bg-secondary rounded-xl overflow-hidden border border-border">
@@ -223,7 +223,7 @@ export default function LevelsPage() {
                 ) : (
                   <Gift className="mr-2 h-4 w-4" />
                 )}
-                Claim All ({(unclaimedBonuses.length * 1000).toLocaleString()} PTS)
+                Claim All ({(unclaimedBonuses.length * 1000).toLocaleString()} MC)
               </Button>
             </CardContent>
           </Card>
@@ -238,7 +238,7 @@ export default function LevelsPage() {
             <div className="flex-1">
               <p className="text-sm text-muted-foreground">Total Bonuses Claimed</p>
               <p className="text-2xl font-black text-primary">
-                {(claimedLevels.length * 1000).toLocaleString()} PTS
+                {(claimedLevels.length * 1000).toLocaleString()} MC
               </p>
               <p className="text-xs text-muted-foreground">= ${claimedLevels.length}.00</p>
             </div>
@@ -295,7 +295,7 @@ export default function LevelsPage() {
                             Level {level.level}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {level.threshold.toLocaleString()} PTS
+                            {level.threshold.toLocaleString()} MC
                           </p>
                         </div>
                       </div>

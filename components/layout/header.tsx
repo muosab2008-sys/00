@@ -21,8 +21,8 @@ interface HeaderProps {
   isCollapsed?: boolean;
 }
 
-// Points to USD conversion (1000 points = $1)
-const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
+// MC to USD conversion (1000 MC = $1)
+const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, userData, logout } = useAuth();
@@ -81,7 +81,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <span className="font-bold text-sm sm:text-base text-foreground">
                     {displayMode === "points" 
                       ? userPoints.toLocaleString()
-                      : `$${pointsToUSD(userPoints)}`
+                      : `${mcToUSD(userPoints)}`
                     }
                   </span>
                   <span className="text-[10px] text-muted-foreground font-medium uppercase">
@@ -193,7 +193,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   {userPoints.toLocaleString()}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  = <span className="text-primary font-bold">${pointsToUSD(userPoints)}</span> USD
+                  = <span className="text-primary font-bold">${mcToUSD(userPoints)}</span> USD
                 </p>
               </div>
 

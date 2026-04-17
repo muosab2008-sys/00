@@ -3,65 +3,18 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, ArrowLeft, Maximize2, Send, ShieldCheck, Globe, ThumbsUp, ThumbsDown, Flame, Trophy, TrendingUp } from "lucide-react"; 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import Link from "next/link";
 
-// Helper function to convert points to USD (1000 points = $1)
-const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
-
-// --- Live Feed ---
-function LiveFeed() {
-  const [feedItems, setFeedItems] = useState<any[]>([]);
-  useEffect(() => {
-    const q = query(collection(db, "live_feed"), orderBy("createdAt", "desc"), limit(15));
-    return onSnapshot(q, (snapshot) => {
-      setFeedItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-  }, []);
-  if (feedItems.length === 0) return null;
-  return (
-    <div className="w-full flex justify-center py-2 select-none relative z-40">
-      <div className="relative flex items-center h-12 w-full glass-card overflow-visible">
-        <div className="absolute left-0 z-[60] bg-card/90 backdrop-blur-xl px-5 h-full flex items-center border-r border-border rounded-l-2xl">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] brand-gradient-text">Live</span>
-          </div>
-        </div>
-        <div className="flex-1 h-full overflow-hidden rounded-2xl ml-24 relative z-10">
-          <div className="flex whitespace-nowrap items-center h-full animate-scroll group hover:[animation-play-state:paused]">
-            {[...feedItems, ...feedItems].map((item, index) => (
-              <div key={`${item.id}-${index}`} className="relative inline-flex items-center gap-3 px-6 border-r border-border h-full">
-                <Avatar className="h-7 w-7 border border-border rounded-lg">
-                  <AvatarImage src={item.photoURL} />
-                  <AvatarFallback className="bg-secondary text-[10px] rounded-lg">{item.username?.[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="font-bold text-foreground">{item.username}</span>
-                  <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20">
-                    <Image src="/coin.png" alt="Points" width={14} height={14} className="w-3.5 h-3.5" />
-                    <span className="font-black text-primary">{(item.points || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Helper function to convert MC to USD (1000 MC = $1)
+const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
 interface Offerwall { 
   id: string; 
@@ -166,8 +119,7 @@ export default function EarnPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full p-4 sm:p-6"> 
-      <LiveFeed />
+    <div className="flex flex-col gap-6 w-full p-4 sm:p-6">
 
       {/* Balance and Level Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
@@ -181,9 +133,9 @@ export default function EarnPage() {
               <p className="text-sm text-muted-foreground font-medium">Available Balance</p>
               <div className="flex items-baseline gap-2">
                 <p className="text-3xl font-black text-foreground">{(userData?.points ?? 0).toLocaleString()}</p>
-                <span className="text-sm text-muted-foreground">PTS</span>
+                <span className="text-sm text-muted-foreground">MC</span>
               </div>
-              <p className="text-xs text-primary font-medium">= ${pointsToUSD(userData?.points ?? 0)} USD</p>
+              <p className="text-xs text-primary font-medium">= ${mcToUSD(userData?.points ?? 0)} USD</p>
             </div>
           </CardContent>
         </Card>
@@ -210,7 +162,7 @@ export default function EarnPage() {
               <TrendingUp className="h-5 w-5 text-primary shrink-0" />
               <span>Level {currentLevel} Progress</span>
             </div>
-            <span className="text-xs font-medium text-muted-foreground">{pointsInCurrentLevel.toLocaleString()} / {pointsPerLevel.toLocaleString()} XP</span>
+            <span className="text-xs font-medium text-muted-foreground">{pointsInCurrentLevel.toLocaleString()} / {pointsPerLevel.toLocaleString()} MC</span>
           </div>
           <div className="h-3 w-full bg-secondary rounded-xl overflow-hidden border border-border">
             <div className="h-full brand-gradient transition-all duration-500 rounded-xl" style={{ width: `${levelProgress}%` }}></div>

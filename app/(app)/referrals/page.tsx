@@ -14,8 +14,8 @@ import { toast } from "sonner";
 import { Users, Copy, Share2, Gift, UserPlus, CheckCircle } from "lucide-react";
 import Image from "next/image";
 
-// Points to USD conversion
-const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
+// MC to USD conversion (1000 MC = $1)
+const mcToUSD = (mc: number) => (mc / 1000).toFixed(2);
 
 interface Referral {
   uid: string;
@@ -131,7 +131,7 @@ export default function ReferralsPage() {
               <p className="text-3xl font-black text-primary">
                 {totalCommissionEarned.toLocaleString()}
               </p>
-              <p className="text-xs text-muted-foreground">= ${pointsToUSD(totalCommissionEarned)}</p>
+              <p className="text-xs text-muted-foreground">= ${mcToUSD(totalCommissionEarned)}</p>
             </div>
           </CardContent>
         </Card>
@@ -259,7 +259,7 @@ export default function ReferralsPage() {
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Earned</p>
                     <p className="font-black text-lg text-primary">
-                      {referral.totalEarned.toLocaleString()} PTS
+                      {referral.totalEarned.toLocaleString()} MC
                     </p>
                   </div>
                 </div>
