@@ -4,6 +4,7 @@ import { useState, ReactNode } from "react";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 import { BottomNav } from "./bottom-nav";
+import { LiveFeed } from "@/components/live-feed";
 
 interface AppShellProps {
   children: ReactNode;
@@ -32,6 +33,9 @@ export function AppShell({ children }: AppShellProps) {
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           isCollapsed={sidebarCollapsed}
         />
+
+        {/* Global Live Feed - Appears on every page */}
+        <LiveFeed />
 
         {/* Main content - transparent background */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-20 lg:pb-0 bg-transparent">
