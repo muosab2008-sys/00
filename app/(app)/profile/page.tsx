@@ -182,7 +182,7 @@ export default function ProfilePage() {
 
       {/* Stats Overview */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="glass-card">
+        <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary border border-border">
               <Image src="/coin.png" alt="Points" width={32} height={32} className="w-8 h-8 object-contain" />
@@ -197,7 +197,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
               <Trophy className="h-7 w-7 text-amber-500" />
@@ -211,7 +211,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl brand-gradient shadow-lg glow-primary">
               <TrendingUp className="h-7 w-7 text-white" />
@@ -226,7 +226,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary border border-border">
               <Calendar className="h-7 w-7 text-muted-foreground" />
@@ -242,7 +242,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Level Progress */}
-      <Card className="glass-card">
+      <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
         <CardContent className="p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -263,7 +263,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* User ID */}
-      <Card className="glass-card">
+      <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
         <CardHeader className="p-5 pb-3">
           <CardTitle className="flex items-center gap-2 text-foreground text-lg">
             <Shield className="h-5 w-5 text-primary" />
@@ -295,7 +295,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Update Username */}
-      <Card className="glass-card">
+      <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
         <CardHeader className="p-5 pb-3">
           <CardTitle className="flex items-center gap-2 text-foreground text-lg">
             <User className="h-5 w-5 text-primary" />
@@ -330,7 +330,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Update Email */}
-      <Card className="glass-card">
+      <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
         <CardHeader className="p-5 pb-3">
           <CardTitle className="flex items-center gap-2 text-foreground text-lg">
             <Mail className="h-5 w-5 text-primary" />
@@ -366,7 +366,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Update Password */}
-      <Card className="glass-card">
+      <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
         <CardHeader className="p-5 pb-3">
           <CardTitle className="flex items-center gap-2 text-foreground text-lg">
             <Lock className="h-5 w-5 text-primary" />
@@ -407,7 +407,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Logout */}
-      <Card className="glass-card border-destructive/20">
+      <Card className="backdrop-blur-xl bg-background/40 border border-destructive/20">
         <CardContent className="p-5">
           <Button
             variant="destructive"

@@ -3,65 +3,21 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, ArrowLeft, Maximize2, Send, ShieldCheck, Globe, ThumbsUp, ThumbsDown, Flame, Trophy, TrendingUp } from "lucide-react"; 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { X, ArrowLeft, Maximize2, ThumbsUp, ThumbsDown, Flame, Trophy, TrendingUp } from "lucide-react"; 
+
 import Image from "next/image";
-import Link from "next/link";
+
 
 // Helper function to convert points to USD (1000 points = $1)
 const pointsToUSD = (points: number) => (points / 1000).toFixed(2);
 
-// --- Live Feed ---
-function LiveFeed() {
-  const [feedItems, setFeedItems] = useState<any[]>([]);
-  useEffect(() => {
-    const q = query(collection(db, "live_feed"), orderBy("createdAt", "desc"), limit(15));
-    return onSnapshot(q, (snapshot) => {
-      setFeedItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-  }, []);
-  if (feedItems.length === 0) return null;
-  return (
-    <div className="w-full flex justify-center py-2 select-none relative z-40">
-      <div className="relative flex items-center h-12 w-full glass-card overflow-visible">
-        <div className="absolute left-0 z-[60] bg-card/90 backdrop-blur-xl px-5 h-full flex items-center border-r border-border rounded-l-2xl">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] brand-gradient-text">Live</span>
-          </div>
-        </div>
-        <div className="flex-1 h-full overflow-hidden rounded-2xl ml-24 relative z-10">
-          <div className="flex whitespace-nowrap items-center h-full animate-scroll group hover:[animation-play-state:paused]">
-            {[...feedItems, ...feedItems].map((item, index) => (
-              <div key={`${item.id}-${index}`} className="relative inline-flex items-center gap-3 px-6 border-r border-border h-full">
-                <Avatar className="h-7 w-7 border border-border rounded-lg">
-                  <AvatarImage src={item.photoURL} />
-                  <AvatarFallback className="bg-secondary text-[10px] rounded-lg">{item.username?.[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="font-bold text-foreground">{item.username}</span>
-                  <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20">
-                    <Image src="/coin.png" alt="Points" width={14} height={14} className="w-3.5 h-3.5" />
-                    <span className="font-black text-primary">{(item.points || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 interface Offerwall { 
   id: string; 
@@ -92,11 +48,19 @@ const defaultOfferwalls: Offerwall[] = [
   { id: "flexwall", name: "Flex Wall", description: "Complete high-paying offers and premium tasks with Flex Wall", logoUrl: "https://media.licdn.com/dms/image/v2/D4D0BAQGjjGNPMg4b5A/company-logo_200_200/B4DZdj2GDwHAAM-/0/1749726817858/flex_wall_logo?e=2147483647&v=beta&t=FX9Rns8aGV87i0C6XdTSsPag5BpWgXrfFnK38vzM4ts", avgPoints: 2200, isActive: true, url: "#", color: "#6366f1", likes: 29, dislikes: 6, isHot: false },
 ];
 
+interface VoteData {
+  likes: number;
+  dislikes: number;
+  userVote: "like" | "dislike" | null;
+}
+
 export default function EarnPage() {
   const { userData } = useAuth();
   const [offerwalls, setOfferwalls] = useState<Offerwall[]>(defaultOfferwalls);
   const [loading, setLoading] = useState(true);
   const [activeOffer, setActiveOffer] = useState<{url: string, title: string} | null>(null);
+  const [votes, setVotes] = useState<Record<string, VoteData>>({});
+  const [votingId, setVotingId] = useState<string | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, "offerwalls"), orderBy("avgPoints", "desc"));
@@ -110,6 +74,121 @@ export default function EarnPage() {
     return () => unsubscribe();
   }, []);
 
+  // Subscribe to real-time votes for each offerwall
+  useEffect(() => {
+    const unsubscribes: (() => void)[] = [];
+
+    defaultOfferwalls.forEach((wall) => {
+      const docRef = doc(db, "offerwalls", wall.id);
+      
+      const unsubscribe = onSnapshot(docRef, async (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          let userVote: "like" | "dislike" | null = null;
+          
+          if (userData?.uid) {
+            const userVoteRef = doc(db, "offerwalls", wall.id, "votes", userData.uid);
+            const userVoteSnap = await getDoc(userVoteRef);
+            if (userVoteSnap.exists()) {
+              userVote = userVoteSnap.data().type;
+            }
+          }
+          
+          setVotes((prev) => ({
+            ...prev,
+            [wall.id]: {
+              likes: data.likes || 0,
+              dislikes: data.dislikes || 0,
+              userVote,
+            },
+          }));
+        }
+      });
+      
+      unsubscribes.push(unsubscribe);
+    });
+
+    return () => {
+      unsubscribes.forEach((unsub) => unsub());
+    };
+  }, [userData?.uid]);
+
+  // Handle vote with optimistic UI and debounce
+  const handleVote = async (wallId: string, voteType: "like" | "dislike", e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!userData?.uid || votingId) return;
+    
+    setVotingId(wallId);
+    
+    // Optimistic update
+    const currentVote = votes[wallId] || { likes: 0, dislikes: 0, userVote: null };
+    const newVotes = { ...votes };
+    
+    if (currentVote.userVote === voteType) {
+      // Remove vote
+      newVotes[wallId] = {
+        ...currentVote,
+        [voteType === "like" ? "likes" : "dislikes"]: Math.max(0, currentVote[voteType === "like" ? "likes" : "dislikes"] - 1),
+        userVote: null,
+      };
+    } else if (currentVote.userVote) {
+      // Change vote
+      newVotes[wallId] = {
+        likes: voteType === "like" ? currentVote.likes + 1 : Math.max(0, currentVote.likes - 1),
+        dislikes: voteType === "dislike" ? currentVote.dislikes + 1 : Math.max(0, currentVote.dislikes - 1),
+        userVote: voteType,
+      };
+    } else {
+      // New vote
+      newVotes[wallId] = {
+        ...currentVote,
+        [voteType === "like" ? "likes" : "dislikes"]: currentVote[voteType === "like" ? "likes" : "dislikes"] + 1,
+        userVote: voteType,
+      };
+    }
+    setVotes(newVotes);
+    
+    try {
+      const offerRef = doc(db, "offerwalls", wallId);
+      const userVoteRef = doc(db, "offerwalls", wallId, "votes", userData.uid);
+      
+      const offerSnap = await getDoc(offerRef);
+      const userVoteSnap = await getDoc(userVoteRef);
+      
+      if (!offerSnap.exists()) {
+        await setDoc(offerRef, {
+          likes: voteType === "like" ? 1 : 0,
+          dislikes: voteType === "dislike" ? 1 : 0,
+        });
+        await setDoc(userVoteRef, { type: voteType, timestamp: new Date() });
+      } else if (!userVoteSnap.exists()) {
+        await updateDoc(offerRef, {
+          [voteType === "like" ? "likes" : "dislikes"]: increment(1),
+        });
+        await setDoc(userVoteRef, { type: voteType, timestamp: new Date() });
+      } else {
+        const existingVote = userVoteSnap.data().type;
+        
+        if (existingVote === voteType) {
+          await updateDoc(offerRef, {
+            [voteType === "like" ? "likes" : "dislikes"]: increment(-1),
+          });
+          await setDoc(userVoteRef, { type: null, timestamp: new Date() });
+        } else {
+          await updateDoc(offerRef, {
+            [existingVote === "like" ? "likes" : "dislikes"]: increment(-1),
+            [voteType === "like" ? "likes" : "dislikes"]: increment(1),
+          });
+          await setDoc(userVoteRef, { type: voteType, timestamp: new Date() });
+        }
+      }
+    } catch (error) {
+      console.error("Error voting:", error);
+    } finally {
+      setVotingId(null);
+    }
+  };
+
   const getDynamicUrl = (wall: Offerwall) => {
     if (!userData?.uid) return "#";
     const uid = userData.uid;
@@ -118,7 +197,7 @@ export default function EarnPage() {
       pubscale: `https://wow.pubscale.com?app_id=99429038&user_id=${uid}`,
       gemiad: `https://gemiwall.com/69c1622e82a1cd59c17a2e21/${uid}`,
       revtoo: `https://revtoo.com/offerwall/xol9xws01wsarkpuv7miwdair6ikvu/${uid}`,
-      offery: `https://offery.io/offerwall/uccnjpr7cd6llvbomgr04no1hofoob/${uid}`,
+      offery: `https://offery.io/offerwall/uccnjpr7cd6llvbomgr04no1hofoobb1/${uid}`,
       adtogame: `https://adtowall.com/7683/${uid}`,
       pixylabs: `https://offerwall.pixylabs.co/230?uid=${uid}`,
       adlexy: `https://adlexy.com/offerwall/7czsknu4bdnqutvkilmntorwwr0s2s/${uid}`,
@@ -167,12 +246,10 @@ export default function EarnPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full p-4 sm:p-6"> 
-      <LiveFeed />
-
       {/* Balance and Level Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         {/* Balance Card - Points Display */}
-        <Card className="glass-card overflow-hidden hover-lift">
+        <Card className="backdrop-blur-xl bg-background/40 border border-white/10 overflow-hidden hover-lift">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary border border-border">
               <Image src="/coin.png" alt="Points" width={32} height={32} className="w-8 h-8 object-contain" />
@@ -189,7 +266,7 @@ export default function EarnPage() {
         </Card>
 
         {/* Level Card */}
-        <Card className="glass-card overflow-hidden hover-lift">
+        <Card className="backdrop-blur-xl bg-background/40 border border-white/10 overflow-hidden hover-lift">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl brand-gradient shadow-lg glow-primary">
               <Trophy className="h-7 w-7 text-white" />
@@ -203,7 +280,7 @@ export default function EarnPage() {
       </div>
 
       {/* Level Progress */}
-      <Card className="glass-card">
+      <Card className="backdrop-blur-xl bg-background/40 border border-white/10">
         <CardContent className="p-5">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 text-foreground font-bold text-sm">
@@ -225,113 +302,82 @@ export default function EarnPage() {
           {loading ? ( 
             <p className="col-span-full text-sm text-muted-foreground text-center py-8">Loading...</p> 
           ) : (
-            offerwalls.map((wall) => (
-              <div 
-                key={wall.id} 
-                onClick={() => { const url = getDynamicUrl(wall); if (url !== "#") setActiveOffer({ url, title: wall.name }); }}
-                className="relative glass-card p-5 cursor-pointer transition-all hover:border-primary/30 hover-lift group"
-              >
-                {/* Hot Badge */}
-                {wall.isHot && (
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-orange-500/10 text-orange-500 border border-orange-500/20 font-bold text-[10px] px-2 py-1 rounded-lg flex items-center gap-1">
-                      <Flame className="h-3 w-3" />
-                      Hot
-                    </Badge>
-                  </div>
-                )}
+            offerwalls.map((wall) => {
+              const wallVotes = votes[wall.id] || { likes: wall.likes || 0, dislikes: wall.dislikes || 0, userVote: null };
+              const isVoting = votingId === wall.id;
+              
+              return (
+                <div 
+                  key={wall.id} 
+                  onClick={() => { const url = getDynamicUrl(wall); if (url !== "#") setActiveOffer({ url, title: wall.name }); }}
+                  className="relative backdrop-blur-xl bg-background/40 border border-white/10 p-5 rounded-2xl cursor-pointer transition-all hover:border-primary/30 hover-lift group"
+                >
+                  {/* Hot Badge */}
+                  {wall.isHot && (
+                    <div className="absolute top-4 right-4">
+                      <Badge className="bg-orange-500/10 text-orange-500 border border-orange-500/20 font-bold text-[10px] px-2 py-1 rounded-lg flex items-center gap-1">
+                        <Flame className="h-3 w-3" />
+                        Hot
+                      </Badge>
+                    </div>
+                  )}
 
-                {/* Logo and Name */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="h-12 w-12 rounded-xl overflow-hidden bg-secondary p-2 shrink-0 border border-border">
-                    <img src={wall.logoUrl} alt={wall.name} className="h-full w-full object-contain" />
+                  {/* Logo and Name */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="h-12 w-12 rounded-xl overflow-hidden bg-white/5 p-2 shrink-0 border border-white/10">
+                      <img src={wall.logoUrl} alt={wall.name} className="h-full w-full object-contain" />
+                    </div>
+                    <span className="font-bold text-foreground text-lg">{wall.name}</span>
                   </div>
-                  <span className="font-bold text-foreground text-lg">{wall.name}</span>
-                </div>
 
-                {/* Progress Bar */}
-                <div className="mb-4">
-                  <div className="h-2 w-full bg-secondary rounded-full overflow-hidden flex border border-border">
-                    <div 
-                      className="h-full brand-gradient transition-all duration-500" 
-                      style={{ width: `${getLikePercentage(wall.likes, wall.dislikes)}%` }}
-                    ></div>
-                    <div 
-                      className="h-full bg-muted" 
-                      style={{ width: `${100 - getLikePercentage(wall.likes, wall.dislikes)}%` }}
-                    ></div>
+                  {/* Progress Bar */}
+                  <div className="mb-4">
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex border border-white/10">
+                      <div 
+                        className="h-full brand-gradient transition-all duration-500" 
+                        style={{ width: `${getLikePercentage(wallVotes.likes, wallVotes.dislikes)}%` }}
+                      ></div>
+                      <div 
+                        className="h-full bg-white/10" 
+                        style={{ width: `${100 - getLikePercentage(wallVotes.likes, wallVotes.dislikes)}%` }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Like/Dislike Stats */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <ThumbsUp className="h-3.5 w-3.5 text-primary" />
-                    <span className="font-medium">{wall.likes || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <ThumbsDown className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-medium">{wall.dislikes || 0}</span>
+                  {/* Interactive Like/Dislike Buttons */}
+                  <div className="flex items-center justify-between">
+                    <button
+                      disabled={!userData?.uid || isVoting}
+                      onClick={(e) => handleVote(wall.id, "like", e)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                        wallVotes.userVote === "like"
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          : "bg-white/5 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent"
+                      } ${isVoting ? "opacity-50" : ""}`}
+                    >
+                      <ThumbsUp className="h-3.5 w-3.5" />
+                      <span className="font-medium text-xs">{wallVotes.likes}</span>
+                    </button>
+                    <button
+                      disabled={!userData?.uid || isVoting}
+                      onClick={(e) => handleVote(wall.id, "dislike", e)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                        wallVotes.userVote === "dislike"
+                          ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                          : "bg-white/5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 border border-transparent"
+                      } ${isVoting ? "opacity-50" : ""}`}
+                    >
+                      <ThumbsDown className="h-3.5 w-3.5" />
+                      <span className="font-medium text-xs">{wallVotes.dislikes}</span>
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="mt-12 border-t border-border bg-card/50 backdrop-blur-xl pt-12 pb-10 w-full px-4 sm:px-8 rounded-2xl">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.png" alt="Logo" width={32} height={32} className="rounded-xl" loading="eager" priority />
-              <span className="text-2xl font-black brand-gradient-text tracking-tight">
-                MrCash
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed font-medium">The premier destination for turning tasks into real digital rewards securely and instantly.</p>
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Trust</h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="w-4 h-4 text-primary" /> Secure Encryption</div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground"><Globe className="w-4 h-4 text-primary" /> Global Payouts</div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Legal</h4>
-            <nav className="flex flex-col gap-3">
-              <Link href="/privacy-policy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                Privacy Policy
-              </Link>
-              <Link href="/terms-of-service" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                Terms of Service
-              </Link>
-            </nav>
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Community</h4>
-            <a href="https://t.me/+HaIWYiOHx-FkNzY0" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50 border border-border hover:border-primary/30 transition-all group">
-              <div className="w-10 h-10 rounded-xl bg-card flex items-center justify-center border border-border group-hover:brand-gradient transition-colors">
-                <Send className="w-5 h-5 text-foreground" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-foreground uppercase">Telegram</span>
-                <span className="text-[10px] text-muted-foreground font-medium">Official Channel</span>
-              </div>
-            </a>
-          </div>
-        </div>
-
-        <div className="mt-10 pt-6 border-t border-border text-center">
-          <p className="text-[10px] font-mono text-muted-foreground tracking-widest">2026 MR.CASH - ALL RIGHTS RESERVED</p>
-        </div>
-      </footer>
-    </div>
+      </div>
   );
 }

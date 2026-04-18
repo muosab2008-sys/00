@@ -235,7 +235,7 @@ export default function OffersPage() {
         </div>
 
         {/* Filters - Glassmorphism */}
-        <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-4 sm:p-5 shadow-xl">
+        <div className="backdrop-blur-xl bg-background/40 border border-white/10 rounded-2xl p-4 sm:p-5 shadow-xl">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             {/* Search */}
             <div className="relative flex-1">
@@ -308,7 +308,7 @@ export default function OffersPage() {
             ))}
           </div>
         ) : filteredOffers.length === 0 ? (
-          <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-12 text-center">
+          <div className="backdrop-blur-xl bg-background/40 border border-white/10 rounded-2xl p-12 text-center">
             <p className="text-white/50 text-lg">No offers found</p>
             <p className="text-white/30 text-sm mt-2">Try adjusting your search</p>
           </div>
@@ -325,7 +325,7 @@ export default function OffersPage() {
               return (
                 <Card 
                   key={offer.id} 
-                  className="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl hover:border-primary/40 hover:bg-white/15 transition-all duration-300 group overflow-hidden"
+                  className="backdrop-blur-xl bg-background/40 border border-white/10 rounded-2xl hover:border-primary/40 hover:bg-background/50 transition-all duration-300 group overflow-hidden"
                 >
                   <CardContent className={`p-5 flex ${viewMode === "list" ? "flex-row items-center gap-6" : "flex-col"} h-full`}>
                     {/* Offer Image & Info */}

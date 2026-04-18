@@ -18,8 +18,8 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden px-3 pb-3 pointer-events-none">
-      {/* Glass container */}
-      <div className="relative glass-card py-2 rounded-2xl pointer-events-auto">
+      {/* Glass container with enhanced blur */}
+      <div className="relative backdrop-blur-xl bg-background/40 border border-white/10 py-2 rounded-2xl pointer-events-auto shadow-2xl">
         
         {/* Navigation items */}
         <div className="flex items-center justify-around px-2">

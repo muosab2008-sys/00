@@ -157,13 +157,30 @@
   }
 }
 
-/* Glass morphism card */
+/* Glass morphism card - Enhanced for APK */
 .glass-card {
-  background: rgba(13, 13, 13, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(13, 13, 13, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
+}
+
+/* High-quality glass panel */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+}
+
+/* Glassmorphism container utility */
+.glass-container {
+  background: rgba(13, 13, 13, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Brand gradient utilities - Blue to Purple */
