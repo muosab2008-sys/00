@@ -89,7 +89,7 @@ export function LiveFeed() {
                         </div>
                         <div className="text-right">
                           <span className="text-[8px] text-white/30 uppercase font-bold block">Reward:</span>
-                          <span className="text-xs font-black text-yellow-500">{item.points} Pts</span>
+                          <span className="text-xs font-black text-yellow-500">{item.points} MC</span>
                         </div>
                       </div>
                     </div>

@@ -230,7 +230,7 @@ export default function OffersPage() {
             Available Offers
           </h1>
           <p className="text-white/50 mt-1">
-            Complete offers and earn MC Points instantly
+            Complete offers and earn MC instantly
           </p>
         </div>
 
@@ -254,8 +254,8 @@ export default function OffersPage() {
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent className="bg-[#0a0a0a]/95 backdrop-blur-xl border-white/10 text-white">
-                <SelectItem value="points-high">Highest Points</SelectItem>
-                <SelectItem value="points-low">Lowest Points</SelectItem>
+                <SelectItem value="points-high">Highest MC</SelectItem>
+                <SelectItem value="points-low">Lowest MC</SelectItem>
                 <SelectItem value="popular">Most Popular</SelectItem>
                 <SelectItem value="name">Name A-Z</SelectItem>
               </SelectContent>
@@ -351,7 +351,7 @@ export default function OffersPage() {
                     {/* Description */}
                     {viewMode === "grid" && (
                       <p className="text-white/50 text-sm line-clamp-2 mb-4 flex-grow">
-                        {offer.description || "Complete this offer to earn points"}
+                        {offer.description || "Complete this offer to earn MC"}
                       </p>
                     )}
 

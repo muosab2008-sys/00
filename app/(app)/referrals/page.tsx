@@ -259,7 +259,7 @@ export default function ReferralsPage() {
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Earned</p>
                     <p className="font-black text-lg text-primary">
-                      {referral.totalEarned.toLocaleString()} PTS
+                      {referral.totalEarned.toLocaleString()} MC
                     </p>
                   </div>
                 </div>

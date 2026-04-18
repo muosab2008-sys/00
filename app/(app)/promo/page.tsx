@@ -101,7 +101,7 @@ export default function PromoPage() {
       });
 
       const rewardText = promoData.pointsReward 
-        ? `${promoData.pointsReward.toLocaleString()} points ($${pointsToUSD(promoData.pointsReward)})`
+        ? `${promoData.pointsReward.toLocaleString()} MC ($${pointsToUSD(promoData.pointsReward)})`
         : "Bonus";
 
       toast.success(`Code redeemed! You received ${rewardText}`);
@@ -123,7 +123,7 @@ export default function PromoPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Promo Codes</h1>
         <p className="text-muted-foreground">
-          Enter promo codes to receive bonus points!
+          Enter promo codes to receive bonus MC!
         </p>
       </div>
 
@@ -139,7 +139,7 @@ export default function PromoPage() {
               <p className="text-3xl font-black text-foreground">
                 {(userData?.points || 0).toLocaleString()}
               </p>
-              <span className="text-sm text-muted-foreground">PTS</span>
+              <span className="text-sm text-muted-foreground">MC</span>
             </div>
             <p className="text-xs text-primary">= ${pointsToUSD(userData?.points || 0)} USD</p>
           </div>

@@ -250,7 +250,7 @@ export default function ProfilePage() {
               <span className="font-bold text-foreground">Level {userData?.level || 1} Progress</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {pointsInCurrentLevel.toLocaleString()} / {pointsNeededForLevel.toLocaleString()} PTS
+              {pointsInCurrentLevel.toLocaleString()} / {pointsNeededForLevel.toLocaleString()} MC
             </span>
           </div>
           <div className="h-3 w-full bg-secondary rounded-xl overflow-hidden border border-border">

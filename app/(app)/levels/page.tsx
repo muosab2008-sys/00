@@ -98,7 +98,7 @@ export default function LevelsPage() {
       }
 
       setClaimedLevels([...claimedLevels, level]);
-      toast.success(`Level ${level} bonus claimed! +1,000 points ($1.00)`);
+      toast.success(`Level ${level} bonus claimed! +1,000 MC ($1.00)`);
     } catch {
       toast.error("Failed to claim bonus");
     } finally {
@@ -134,7 +134,7 @@ export default function LevelsPage() {
       }
 
       setClaimedLevels(newClaimedLevels);
-      toast.success(`Claimed ${unclaimedBonuses.length} bonuses! +${totalBonus.toLocaleString()} points`);
+      toast.success(`Claimed ${unclaimedBonuses.length} bonuses! +${totalBonus.toLocaleString()} MC`);
     } catch {
       toast.error("Failed to claim bonuses");
     } finally {
@@ -149,7 +149,7 @@ export default function LevelsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Level Progression</h1>
           <p className="text-muted-foreground">
-            Level up to earn bonus rewards! Each level grants you 1,000 points ($1.00).
+            Level up to earn bonus rewards! Each level grants you 1,000 MC ($1.00).
           </p>
         </div>
 
@@ -169,7 +169,7 @@ export default function LevelsPage() {
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Total Earned</p>
                 <p className="text-xl font-black text-primary">
-                  {totalEarned.toLocaleString()} PTS
+                  {totalEarned.toLocaleString()} MC
                 </p>
                 <p className="text-xs text-muted-foreground">= ${pointsToUSD(totalEarned)}</p>
               </div>
@@ -180,7 +180,7 @@ export default function LevelsPage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Progress to Level {currentLevel + 1}</span>
                 <span className="font-medium text-foreground">
-                  {pointsInCurrentLevel.toLocaleString()} / {pointsNeededForLevel.toLocaleString()} PTS
+                  {pointsInCurrentLevel.toLocaleString()} / {pointsNeededForLevel.toLocaleString()} MC
                 </span>
               </div>
               <div className="h-3 w-full bg-secondary rounded-xl overflow-hidden border border-border">
@@ -190,7 +190,7 @@ export default function LevelsPage() {
                 />
               </div>
               <p className="text-sm text-muted-foreground">
-                {(pointsNeededForLevel - pointsInCurrentLevel).toLocaleString()} more points needed
+                {(pointsNeededForLevel - pointsInCurrentLevel).toLocaleString()} more MC needed
               </p>
             </div>
           </CardContent>
@@ -209,7 +209,7 @@ export default function LevelsPage() {
                     {unclaimedBonuses.length} Unclaimed Bonuses!
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    You have {(unclaimedBonuses.length * 1000).toLocaleString()} points (${unclaimedBonuses.length}.00) in unclaimed bonuses
+                    You have {(unclaimedBonuses.length * 1000).toLocaleString()} MC (${unclaimedBonuses.length}.00) in unclaimed bonuses
                   </p>
                 </div>
               </div>
@@ -223,7 +223,7 @@ export default function LevelsPage() {
                 ) : (
                   <Gift className="mr-2 h-4 w-4" />
                 )}
-                Claim All ({(unclaimedBonuses.length * 1000).toLocaleString()} PTS)
+                Claim All ({(unclaimedBonuses.length * 1000).toLocaleString()} MC)
               </Button>
             </CardContent>
           </Card>
@@ -238,7 +238,7 @@ export default function LevelsPage() {
             <div className="flex-1">
               <p className="text-sm text-muted-foreground">Total Bonuses Claimed</p>
               <p className="text-2xl font-black text-primary">
-                {(claimedLevels.length * 1000).toLocaleString()} PTS
+                {(claimedLevels.length * 1000).toLocaleString()} MC
               </p>
               <p className="text-xs text-muted-foreground">= ${claimedLevels.length}.00</p>
             </div>
@@ -295,7 +295,7 @@ export default function LevelsPage() {
                             Level {level.level}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {level.threshold.toLocaleString()} PTS
+                            {level.threshold.toLocaleString()} MC
                           </p>
                         </div>
                       </div>
@@ -355,11 +355,11 @@ export default function LevelsPage() {
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-start gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">1</span>
-                Each level requires 10,000 additional points.
+                Each level requires 10,000 additional MC.
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">2</span>
-                When you reach a new level, you can claim a 1,000 point bonus ($1.00).
+                When you reach a new level, you can claim a 1,000 MC bonus ($1.00).
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">3</span>

@@ -258,7 +258,7 @@ export default function EarnPage() {
               <p className="text-sm text-muted-foreground font-medium">Available Balance</p>
               <div className="flex items-baseline gap-2">
                 <p className="text-3xl font-black text-foreground">{(userData?.points ?? 0).toLocaleString()}</p>
-                <span className="text-sm text-muted-foreground">PTS</span>
+                <span className="text-sm text-muted-foreground">MC</span>
               </div>
               <p className="text-xs text-primary font-medium">= ${pointsToUSD(userData?.points ?? 0)} USD</p>
             </div>
@@ -287,7 +287,7 @@ export default function EarnPage() {
               <TrendingUp className="h-5 w-5 text-primary shrink-0" />
               <span>Level {currentLevel} Progress</span>
             </div>
-            <span className="text-xs font-medium text-muted-foreground">{pointsInCurrentLevel.toLocaleString()} / {pointsPerLevel.toLocaleString()} XP</span>
+            <span className="text-xs font-medium text-muted-foreground">{pointsInCurrentLevel.toLocaleString()} / {pointsPerLevel.toLocaleString()} MC</span>
           </div>
           <div className="h-3 w-full bg-secondary rounded-xl overflow-hidden border border-border">
             <div className="h-full brand-gradient transition-all duration-500 rounded-xl" style={{ width: `${levelProgress}%` }}></div>
@@ -297,7 +297,7 @@ export default function EarnPage() {
 
       {/* Offerwalls Section */}
       <div>
-        <h2 className="mb-4 text-xl font-black text-foreground tracking-tight">Earn Points</h2>
+        <h2 className="mb-4 text-xl font-black text-foreground tracking-tight">Earn MC</h2>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {loading ? ( 
             <p className="col-span-full text-sm text-muted-foreground text-center py-8">Loading...</p> 
